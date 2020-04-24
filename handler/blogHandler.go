@@ -5,9 +5,7 @@ import (
 	"blog/util"
 	"errors"
 	"fmt"
-	"github.com/bluele/gcache"
 	"github.com/gin-gonic/gin"
-	uuid "github.com/satori/go.uuid"
 	"net/http"
 	"os"
 	"time"
@@ -17,17 +15,6 @@ import (
 	"blog/info/query"
 	"blog/service"
 )
-
-var adminSession gcache.Cache = nil
-
-func init() {
-	adminSession = gcache.New(1000000).LRU().Build()
-}
-
-func CheckAccess(session string) bool {
-	_, err := adminSession.Get(session)
-	return err == nil
-}
 
 func QueryBlog(c *gin.Context, query *query.BlogQuery) (error, *info.PagingInfo) {
 	return nil, service.BlogService.QueryPage(query)
@@ -66,24 +53,6 @@ func QueryAbout(c *gin.Context, pageQuery *query.PageQuery) (error, *domain.Blog
 func UpdateAbout(c *gin.Context, record *domain.BlogAboutDomain) (error, bool) {
 	err := service.BlogAboutService.Update(record)
 	return err, err == nil
-}
-
-func CheckAdmin(c *gin.Context, adminInfo *info.CheckAdminInfo) (error, bool) {
-	if adminInfo.Pwd == nil {
-		return errors.New("pwd is nil"), false
-	}
-	access := service.BlogAboutService.CheckAdmin(*adminInfo.Pwd)
-	if access {
-		cookies, err := c.Cookie(constant.SESSION)
-		if err != nil {
-			uuidV4 := uuid.NewV4().String()
-			c.SetCookie(constant.SESSION, uuidV4, constant.MaxAge, "/", "localhost", false, true)
-			c.SetCookie(constant.SESSION, uuidV4, constant.MaxAge, "/", "wangzhengyu.cn", false, true)
-			cookies = uuidV4
-		}
-		err = adminSession.SetWithExpire(cookies, true, constant.MaxAge*time.Second)
-	}
-	return nil, access
 }
 
 func Upload(c *gin.Context) {

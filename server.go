@@ -74,6 +74,10 @@ func buildStruct(c *gin.Context, modelType reflect.Type, returnPtr bool) interfa
 					if value, err := strconv.Atoi(queryValue); err == nil {
 						modelValue.Field(i).Set(reflect.ValueOf(util.Uint64Ptr(uint64(value))))
 					}
+				case reflect.Bool:
+					if value, err := strconv.ParseBool(queryValue); err == nil {
+						modelValue.Field(i).Set(reflect.ValueOf(util.BoolPtr(value)))
+					}
 				}
 			}
 		}
@@ -87,7 +91,7 @@ func buildStruct(c *gin.Context, modelType reflect.Type, returnPtr bool) interfa
 
 func setupRouter() *gin.Engine {
 	r := gin.New()
-	r.Use(middleware.LogMiddleware, middleware.SessionMiddleware)
+	r.Use(middleware.CorsMiddleware, middleware.LogMiddleware, middleware.SessionMiddleware)
 	globalGroup := r.Group("/blog")
 	authGroup := globalGroup.Group("/admin")
 	authGroup.Use(middleware.AuthMiddleware)
@@ -109,6 +113,7 @@ func setupRouter() *gin.Engine {
 	openGroup.POST("/message/create", injectParam(handler.CreateMessage))
 	openGroup.GET("/about/query", injectParam(handler.QueryAbout))
 	openGroup.GET("/about/checkAdmin", injectParam(handler.CheckAdmin))
+	openGroup.GET("/captcha/getCaptcha", injectParam(handler.GetCaptcha))
 
 	globalGroup.StaticFS("/static", http.Dir("static"))
 	return r
